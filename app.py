@@ -6,6 +6,10 @@ import pandas as pd
 from typing import List, Dict, Any
 import time
 from urllib.parse import urlparse
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Configure page
 st.set_page_config(
@@ -56,54 +60,54 @@ class JobHunterApp:
     
     def setup_api_keys(self):
         """Setup API keys and Azure OpenAI configuration in sidebar"""
-        with st.sidebar:
-            st.header("🔑 API Configuration")
+        # with st.sidebar:
+        #     st.header("🔑 API Configuration")
             
-            # SERP API
-            self.serp_api_key = st.text_input("SERP API Key", type="password", 
-                                            help="Get your API key from serpapi.com")
+        #     # SERP API
+        #     self.serp_api_key = st.text_input("SERP API Key", type="password", 
+        #                                     help="Get your API key from serpapi.com")
             
-            st.subheader("🤖 Azure OpenAI Configuration")
-            self.azure_openai_api_key = st.text_input("Azure OpenAI API Key", type="password",
-                                                     help="Your Azure OpenAI API key")
-            self.azure_openai_endpoint = st.text_input("Azure OpenAI Endpoint",
-                                                      placeholder="https://your-resource.openai.azure.com/",
-                                                      help="Your Azure OpenAI endpoint URL")
-            self.azure_openai_deployment = st.text_input("Deployment Name",
-                                                        placeholder="gpt-35-turbo or gpt-4",
-                                                        value="gpt-35-turbo",
-                                                        help="Your deployed model name in Azure OpenAI")
-            self.azure_openai_api_version = st.selectbox("API Version",
-                                                        ["2024-02-15-preview", "2023-12-01-preview", "2023-05-15"],
-                                                        index=0,
-                                                        help="Azure OpenAI API version")
-            
-            # Initialize Azure OpenAI client
-            self.azure_client = None
-            if all([self.azure_openai_api_key, self.azure_openai_endpoint, self.azure_openai_deployment]):
-                try:
-                    self.azure_client = AzureOpenAI(
-                        api_key=self.azure_openai_api_key,
-                        api_version=self.azure_openai_api_version,
-                        azure_endpoint=self.azure_openai_endpoint
-                    )
-                    st.success("✅ Azure OpenAI configured successfully!")
-                except Exception as e:
-                    st.error(f"❌ Azure OpenAI configuration error: {str(e)}")
-            elif any([self.azure_openai_api_key, self.azure_openai_endpoint, self.azure_openai_deployment]):
-                st.warning("⚠️ Please fill in all Azure OpenAI fields")
+        #     st.subheader("🤖 Azure OpenAI Configuration")
+        #     self.azure_openai_api_key = st.text_input("Azure OpenAI API Key", type="password",
+        #                                              help="Your Azure OpenAI API key")
+        #     self.azure_openai_endpoint = st.text_input("Azure OpenAI Endpoint",
+        #                                               placeholder="https://your-resource.openai.azure.com/",
+        #                                               help="Your Azure OpenAI endpoint URL")
+        #     self.azure_openai_deployment = st.text_input("Deployment Name",
+        #                                                 placeholder="gpt-35-turbo or gpt-4",
+        #                                                 value="gpt-35-turbo",
+        #                                                 help="Your deployed model name in Azure OpenAI")
+        #     self.azure_openai_api_version = st.selectbox("API Version",
+        #                                                 ["2024-02-15-preview", "2023-12-01-preview", "2023-05-15"],
+        #                                                 index=0,
+        #                                                 help="Azure OpenAI API version")
+
+
+        # SERP API
+        self.serp_api_key = os.getenv("SERP_API_KEY")
+        
+        # Azure OpenAI API
+        self.azure_openai_api_key = os.getenv("AZURE_OPENAI_API_KEY")
+        self.azure_openai_endpoint = os.getenv("AZURE_OPENAI_API_ENDPOINT")
+        self.azure_openai_deployment = os.getenv("AZURE_API_DEPLOYMENT_NAME")
+        self.azure_openai_api_version = os.getenv("AZURE_OPENAI_API_VERSION")
+        # Initialize Azure OpenAI client
+        self.azure_client = None
+        if all([self.azure_openai_api_key, self.azure_openai_endpoint, self.azure_openai_deployment]):
+            try:
+                self.azure_client = AzureOpenAI(
+                    api_key=self.azure_openai_api_key,
+                    api_version=self.azure_openai_api_version,
+                    azure_endpoint=self.azure_openai_endpoint
+                )
+                st.success("✅ Azure OpenAI configured successfully!")
+            except Exception as e:
+                st.error(f"❌ Azure OpenAI configuration error: {str(e)}")
+        elif any([self.azure_openai_api_key, self.azure_openai_endpoint, self.azure_openai_deployment]):
+            st.warning("⚠️ Please fill in all Azure OpenAI fields")
     
     def setup_constants(self):
         """Setup company lists and job search parameters"""
-        self.top_companies = [
-            "Google", "Microsoft", "Apple", "Amazon", "Meta", "Netflix", "Tesla",
-            "Salesforce", "Adobe", "Oracle", "IBM", "Intel", "NVIDIA", "Cisco",
-            "SAP", "VMware", "Uber", "Airbnb", "Twitter", "LinkedIn", "Spotify",
-            "Dropbox", "Slack", "Zoom", "Shopify", "Square", "PayPal", "eBay",
-            "Atlassian", "ServiceNow", "Workday", "Palantir", "Snowflake",
-            "Databricks", "Unity", "Twilio", "DocuSign", "Okta", "Splunk"
-        ]
-        
         self.employment_types = [
             "Full-time", "Part-time", "Contract", "Internship", "Temporary"
         ]
@@ -115,6 +119,28 @@ class JobHunterApp:
         self.experience_levels = [
             "Entry Level", "Mid Level", "Senior Level", "Executive"
         ]
+        
+        # Industry domains for career page discovery
+        self.industry_domains = [
+            "Technology & Software",
+            "Financial Services & Fintech",
+            "Healthcare & Biotechnology",
+            "E-commerce & Retail",
+            "Consulting & Professional Services",
+            "Manufacturing & Automotive",
+            "Media & Entertainment",
+            "Energy & Utilities",
+            "Real Estate & Construction",
+            "Education & EdTech",
+            "Food & Beverage",
+            "Transportation & Logistics",
+            "Telecommunications",
+            "Gaming & Digital Entertainment",
+            "Aerospace & Defense"
+        ]
+        
+        # Company size categories
+        self.company_sizes = ["MNCs (Large Corporations)", "Startups (Small to Medium)"]
     
     def search_serp_jobs(self, query: str, location: str = "", num_results: int = 20) -> List[Dict]:
         """Search for jobs using SERP API"""
@@ -163,153 +189,229 @@ class JobHunterApp:
             st.error(f"Error searching jobs: {str(e)}")
             return []
     
-    def get_company_career_pages(self, companies: List[str]) -> List[Dict]:
-        """Get career page URLs for companies with improved search strategies"""
+    def discover_career_pages_by_industry(self, industry: str, company_size: str, num_results: int = 50) -> List[Dict]:
+        """Discover career pages by industry and company size using SERP API"""
         if not self.serp_api_key:
             st.error("Please provide SERP API key")
             return []
         
-        career_pages = []
-        progress_bar = st.progress(0)
-        status_placeholder = st.empty()
-        
-        # Multiple search strategies for better results
-        search_strategies = [
-            f"{{}}.com careers",
-            f"{{}}.com jobs",
-            f"{{}} careers site:careers.{{}}.com",
-            f"{{}} jobs hiring",
-            f"{{}} company careers page"
-        ]
-        
-        for i, company in enumerate(companies):
-            try:
-                status_placeholder.text(f"🔍 Searching career pages for {company}...")
-                company_found = False
+        try:
+            # Build search query based on industry and company size
+            size_keywords = {
+                "MNCs (Large Corporations)": "Fortune 500 OR multinational OR corporation OR enterprise OR global company",
+                "Startups (Small to Medium)": "startup OR tech startup OR emerging company OR scale-up OR growing company"
+            }
+            
+            industry_keywords = {
+                "Technology & Software": "software company OR tech company OR IT company",
+                "Financial Services & Fintech": "bank OR financial services OR fintech OR investment",
+                "Healthcare & Biotechnology": "healthcare company OR biotech OR pharmaceutical OR medical",
+                "E-commerce & Retail": "ecommerce OR retail company OR online marketplace",
+                "Consulting & Professional Services": "consulting firm OR professional services OR advisory",
+                "Manufacturing & Automotive": "manufacturing company OR automotive OR industrial",
+                "Media & Entertainment": "media company OR entertainment OR broadcasting OR streaming",
+                "Energy & Utilities": "energy company OR utilities OR renewable energy OR oil gas",
+                "Real Estate & Construction": "real estate OR construction company OR property development",
+                "Education & EdTech": "education company OR edtech OR learning platform OR university",
+                "Food & Beverage": "food company OR beverage OR restaurant chain OR food tech",
+                "Transportation & Logistics": "logistics company OR transportation OR supply chain OR shipping",
+                "Telecommunications": "telecom company OR telecommunications OR wireless OR network",
+                "Gaming & Digital Entertainment": "gaming company OR game developer OR digital entertainment",
+                "Aerospace & Defense": "aerospace company OR defense contractor OR aviation"
+            }
+            
+            # Construct search query
+            base_query = f"({industry_keywords.get(industry, industry)}) AND ({size_keywords.get(company_size, '')}) careers site:careers OR site:jobs"
+            
+            params = {
+                "engine": "google",
+                "q": base_query,
+                "api_key": self.serp_api_key,
+                "num": min(num_results, 100),
+                "gl": "us",
+                "hl": "en"
+            }
+            
+            st.info(f"🔍 Searching: {base_query}")
+            
+            response = requests.get("https://serpapi.com/search", params=params, timeout=15)
+            
+            if response.status_code == 200:
+                data = response.json()
+                organic_results = data.get("organic_results", [])
                 
-                # Try multiple search strategies
-                for strategy_template in search_strategies:
-                    if company_found:
-                        break
-                        
-                    # Format the query based on strategy
-                    if "{{}}" in strategy_template:
-                        query = strategy_template.format(company, company.lower().replace(' ', ''))
-                    else:
-                        query = strategy_template.format(company)
+                st.info(f"📊 Found {len(organic_results)} raw results from SERP API")
+                
+                # Process and clean results
+                career_pages = []
+                for result in organic_results:
+                    link = result.get("link", "")
+                    title = result.get("title", "")
+                    snippet = result.get("snippet", "")
                     
-                    params = {
-                        "engine": "google",
-                        "q": query,
-                        "api_key": self.serp_api_key,
-                        "num": 5,
-                        "gl": "us",  # Country
-                        "hl": "en"   # Language
+                    # Extract company name from title or domain
+                    company_name = self.extract_company_name(title, link)
+                    
+                    # Basic filtering for career-related pages
+                    career_keywords = ["career", "job", "hiring", "work", "employment", "talent", "opportunity", "join"]
+                    
+                    if any(keyword in link.lower() or keyword in title.lower() for keyword in career_keywords):
+                        career_page = {
+                            "company_name": company_name,
+                            "title": title,
+                            "career_url": link,
+                            "description": snippet,
+                            "domain": self.extract_domain(link),
+                            "industry": industry,
+                            "company_size": company_size
+                        }
+                        career_pages.append(career_page)
+                
+                return career_pages
+            
+            else:
+                st.error(f"SERP API Error: {response.status_code} - {response.text[:200]}")
+                return []
+                
+        except Exception as e:
+            st.error(f"Error discovering career pages: {str(e)}")
+            return []
+    
+    def extract_company_name(self, title: str, url: str) -> str:
+        """Extract company name from title or URL"""
+        # Try to extract from title first
+        if " - " in title:
+            potential_company = title.split(" - ")[0].strip()
+            if len(potential_company) < 50 and not any(word in potential_company.lower() for word in ["career", "job", "hiring"]):
+                return potential_company
+        
+        # Extract from domain
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+            
+            # Remove common prefixes and suffixes
+            domain = domain.replace("www.", "").replace("careers.", "").replace("jobs.", "")
+            
+            if "." in domain:
+                company_part = domain.split(".")[0]
+                return company_part.replace("-", " ").title()
+            
+            return domain.title()
+        except:
+            return "Unknown Company"
+    
+    def extract_domain(self, url: str) -> str:
+        """Extract clean domain from URL"""
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
+            return domain.replace("www.", "")
+        except:
+            return url
+    
+    def filter_career_pages_with_llm(self, career_pages: List[Dict], criteria: Dict) -> List[Dict]:
+        """Use Azure OpenAI to filter and validate career pages based on criteria"""
+        if not self.azure_client or not career_pages:
+            if not self.azure_client:
+                st.warning("Azure OpenAI not configured. Returning unfiltered results.")
+            return career_pages
+        
+        try:
+            # Prepare career pages data for LLM
+            pages_summary = []
+            for i, page in enumerate(career_pages[:100], 1):  # Limit for token efficiency
+                summary = f"""
+                Company {i}:
+                Name: {page['company_name']}
+                Domain: {page['domain']}
+                Title: {page['title']}
+                Description: {page['description'][:300]}
+                Industry: {page['industry']}
+                Size Category: {page['company_size']}
+                URL: {page['career_url']}
+                """
+                pages_summary.append(summary)
+            
+            # Create LLM prompt for filtering
+            prompt = f"""
+            You are an expert at evaluating company career pages. Please analyze these career page results and select only the most legitimate and relevant ones based on the following criteria:
+
+            FILTERING CRITERIA:
+            - Industry: {criteria.get('industry', 'Any')}
+            - Company Size: {criteria.get('company_size', 'Any')}
+            - Maximum Results Needed: {criteria.get('num_results', 20)}
+
+            VALIDATION REQUIREMENTS:
+            1. Must be actual company career pages (not job boards, recruiters, or aggregators)
+            2. Company name should be clearly identifiable and legitimate
+            3. Domain should belong to the actual company
+            4. Should match the requested industry and company size category
+            5. Remove duplicates (same company with different URLs)
+            6. Prioritize well-known, established companies
+
+            COMPANIES TO ANALYZE:
+            {chr(10).join(pages_summary[:50])}
+
+            Please return a JSON array with company numbers (1-based) that meet the criteria, ordered by relevance and company reputation.
+            Format: {{"selected_companies": [1, 3, 5, 7, ...], "reasoning": "Brief explanation of selection criteria applied"}}
+            Only return valid JSON, no additional text.
+            """
+
+            # Make Azure OpenAI API call
+            response = self.azure_client.chat.completions.create(
+                model=self.azure_openai_deployment,
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "You are a professional HR and business analyst expert at identifying legitimate company career pages. Always respond with valid JSON only."
+                    },
+                    {
+                        "role": "user", 
+                        "content": prompt
                     }
-                    
-                    try:
-                        response = requests.get("https://serpapi.com/search", params=params, timeout=10)
-                        
-                        if response.status_code == 200:
-                            data = response.json()
-                            
-                            # Debug: Show raw response for first company
-                            if i == 0:
-                                st.write(f"Debug - API Response Status: {response.status_code}")
-                                st.write(f"Debug - Query used: {query}")
-                                if "organic_results" in data:
-                                    st.write(f"Debug - Found {len(data['organic_results'])} organic results")
-                                else:
-                                    st.write(f"Debug - Available keys: {list(data.keys())}")
-                            
-                            organic_results = data.get("organic_results", [])
-                            
-                            for result in organic_results:
-                                link = result.get("link", "")
-                                title = result.get("title", "")
-                                snippet = result.get("snippet", "")
-                                
-                                # More flexible career page detection
-                                career_keywords = [
-                                    "career", "job", "hiring", "work", "employment", 
-                                    "talent", "opportunity", "join", "apply", "vacancy"
-                                ]
-                                
-                                # Check if this looks like a career page
-                                is_career_page = (
-                                    any(keyword in link.lower() for keyword in career_keywords) or
-                                    any(keyword in title.lower() for keyword in career_keywords) or
-                                    any(keyword in snippet.lower() for keyword in career_keywords[:5])  # More specific keywords for snippet
-                                )
-                                
-                                # Additional check for company domain
-                                company_domain_match = (
-                                    company.lower().replace(' ', '') in link.lower() or
-                                    company.lower() in link.lower()
-                                )
-                                
-                                if is_career_page or company_domain_match:
-                                    career_pages.append({
-                                        "company": company,
-                                        "title": title,
-                                        "link": link,
-                                        "snippet": snippet,
-                                        "search_query": query
-                                    })
-                                    company_found = True
-                                    break
-                        
-                        elif response.status_code == 429:
-                            st.warning(f"Rate limited, waiting before next request...")
-                            time.sleep(2)
-                            
-                        else:
-                            if i == 0:  # Debug info for first company
-                                st.write(f"Debug - HTTP Error: {response.status_code}")
-                                st.write(f"Debug - Response: {response.text[:500]}")
-                    
-                    except requests.exceptions.Timeout:
-                        st.warning(f"Timeout for {company}, trying next strategy...")
-                        continue
-                    except requests.exceptions.RequestException as e:
-                        st.warning(f"Request error for {company}: {str(e)}")
-                        continue
+                ],
+                temperature=0.2,
+                max_tokens=1000
+            )
+            
+            result = response.choices[0].message.content.strip()
+            
+            # Parse LLM response
+            try:
+                # Clean the response
+                if result.startswith("```json"):
+                    result = result[7:-3]
+                elif result.startswith("```"):
+                    result = result[3:-3]
                 
-                # If no career page found, add a generic result
-                if not company_found:
-                    # Try to construct a likely career page URL
-                    company_clean = company.lower().replace(' ', '').replace('.', '')
-                    generic_urls = [
-                        f"https://careers.{company_clean}.com",
-                        f"https://jobs.{company_clean}.com",
-                        f"https://www.{company_clean}.com/careers",
-                        f"https://www.{company_clean}.com/jobs"
-                    ]
-                    
-                    career_pages.append({
-                        "company": company,
-                        "title": f"{company} - Careers (Constructed URL)",
-                        "link": generic_urls[0],  # Use the most common pattern
-                        "snippet": f"Career opportunities at {company}. Visit their career page to explore current openings.",
-                        "search_query": "constructed_url"
-                    })
+                parsed_result = json.loads(result)
+                selected_indices = parsed_result.get("selected_companies", [])
+                reasoning = parsed_result.get("reasoning", "AI filtering applied")
                 
-                progress_bar.progress((i + 1) / len(companies))
-                time.sleep(0.2)  # Slightly longer delay to avoid rate limiting
+                # Convert 1-based indices to 0-based and filter pages
+                filtered_pages = []
+                for idx in selected_indices:
+                    if 1 <= idx <= len(career_pages):
+                        filtered_pages.append(career_pages[idx-1])
                 
-            except Exception as e:
-                st.warning(f"Error fetching career page for {company}: {str(e)}")
-                # Add fallback entry
-                career_pages.append({
-                    "company": company,
-                    "title": f"{company} - Careers",
-                    "link": f"https://www.google.com/search?q={company}+careers",
-                    "snippet": f"Search for {company} career opportunities",
-                    "search_query": "error_fallback"
-                })
-        
-        status_placeholder.text(f"✅ Completed! Found {len(career_pages)} career pages.")
-        return career_pages
+                if filtered_pages:
+                    st.success(f"🤖 AI validated {len(filtered_pages)} legitimate career pages from {len(career_pages)} candidates")
+                    st.info(f"💡 AI Reasoning: {reasoning}")
+                    return filtered_pages[:criteria.get('num_results', 20)]
+                else:
+                    st.warning("AI filtering returned no valid results, showing top unfiltered results")
+                    return career_pages[:criteria.get('num_results', 20)]
+                
+            except json.JSONDecodeError as e:
+                st.warning(f"AI response parsing failed: {str(e)}, returning unfiltered results")
+                return career_pages[:criteria.get('num_results', 20)]
+                
+        except Exception as e:
+            st.error(f"AI filtering error: {str(e)}")
+            return career_pages[:criteria.get('num_results', 20)]
     
     def filter_jobs_with_gpt(self, jobs: List[Dict], criteria: Dict) -> List[Dict]:
         """Use Azure OpenAI GPT to filter and rank jobs based on criteria"""
@@ -423,7 +525,7 @@ class JobHunterApp:
                     <p><strong>🕒 Posted:</strong> {job.get('posted_at', 'Recently')}</p>
                     <p><strong>💼 Type:</strong> {job.get('schedule_type', 'Not specified')}</p>
                     <p><strong>🏠 Remote:</strong> {'Yes' if job.get('work_from_home') else 'Not specified'}</p>
-                    <p><strong>📝 Description:</strong> {job['description'][:200]}...</p>
+                    <p><strong>📝 Description:</strong> {job['description'][:500]}...</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -437,82 +539,108 @@ class JobHunterApp:
                 st.divider()
     
     def display_career_pages(self, career_pages: List[Dict]):
-        """Display career page results with enhanced information"""
+        """Display filtered career page results"""
         if not career_pages:
-            st.info("No career pages found.")
+            st.info("No career pages found matching your criteria.")
             return
         
-        st.markdown(f"### Found {len(career_pages)} Career Pages")
+        st.markdown(f"### 🎯 {len(career_pages)} Validated Career Pages")
         
-        # Show summary statistics
+        # Display summary metrics
         col1, col2, col3 = st.columns(3)
         with col1:
-            found_pages = len([p for p in career_pages if p.get('search_query') not in ['constructed_url', 'error_fallback']])
-            st.metric("🔍 Found via Search", found_pages)
+            unique_domains = len(set(page['domain'] for page in career_pages))
+            st.metric("🌐 Unique Domains", unique_domains)
         with col2:
-            constructed_pages = len([p for p in career_pages if p.get('search_query') == 'constructed_url'])
-            st.metric("🏗️ Constructed URLs", constructed_pages)
+            industries = set(page['industry'] for page in career_pages)
+            st.metric("🏭 Industries", len(industries))
         with col3:
-            error_pages = len([p for p in career_pages if p.get('search_query') == 'error_fallback'])
-            st.metric("⚠️ Fallback Results", error_pages)
-        
-        # Group by company
-        companies_dict = {}
-        for page in career_pages:
-            company = page['company']
-            if company not in companies_dict:
-                companies_dict[company] = []
-            companies_dict[company].append(page)
+            company_sizes = set(page['company_size'] for page in career_pages)
+            st.metric("📊 Company Types", len(company_sizes))
         
         # Display options
-        display_mode = st.radio("Display Mode", ["Expandable Cards", "Simple List"], horizontal=True)
+        display_mode = st.radio("Display Mode", ["Cards View", "Table View"], horizontal=True)
         
-        if display_mode == "Expandable Cards":
-            for company, pages in companies_dict.items():
-                # Determine the icon based on how the page was found
-                page_type = pages[0].get('search_query', '')
-                if page_type == 'constructed_url':
-                    icon = "🏗️"
-                elif page_type == 'error_fallback':
-                    icon = "⚠️"
-                else:
-                    icon = "🔍"
-                
-                with st.expander(f"{icon} {company} ({len(pages)} page{'s' if len(pages) > 1 else ''})"):
+        if display_mode == "Cards View":
+            # Group by industry or company size
+            group_by = st.selectbox("Group by", ["Industry", "Company Size"], key="group_career")
+            
+            if group_by == "Industry":
+                grouped = {}
+                for page in career_pages:
+                    industry = page['industry']
+                    if industry not in grouped:
+                        grouped[industry] = []
+                    grouped[industry].append(page)
+            else:
+                grouped = {}
+                for page in career_pages:
+                    size = page['company_size']
+                    if size not in grouped:
+                        grouped[size] = []
+                    grouped[size].append(page)
+            
+            for group_name, pages in grouped.items():
+                with st.expander(f"📁 {group_name} ({len(pages)} companies)", expanded=True):
                     for page in pages:
                         st.markdown(f"""
                         <div class="company-card">
-                            <h5>{page['title']}</h5>
-                            <p><strong>🔍 Search Query:</strong> {page.get('search_query', 'N/A')}</p>
-                            <p><strong>📝 Description:</strong> {page['snippet'][:300]}...</p>
-                            <p><a href="{page['link']}" target="_blank">🔗 Visit Career Page</a></p>
+                            <h5>🏢 {page['company_name']}</h5>
+                            <p><strong>🌐 Domain:</strong> {page['domain']}</p>
+                            <p><strong>🏭 Industry:</strong> {page['industry']}</p>
+                            <p><strong>📊 Size:</strong> {page['company_size']}</p>
+                            <p><strong>📝 Description:</strong> {page['description'][:200]}...</p>
+                            <p><a href="{page['career_url']}" target="_blank">🔗 Visit Career Page</a></p>
                         </div>
                         """, unsafe_allow_html=True)
+                        st.markdown("---")
         else:
-            # Simple list view
+            # Table view
             df_data = []
             for page in career_pages:
-                page_type = page.get('search_query', '')
-                source = "🔍 Found" if page_type not in ['constructed_url', 'error_fallback'] else ("🏗️ Constructed" if page_type == 'constructed_url' else "⚠️ Fallback")
-                
                 df_data.append({
-                    "Company": page['company'],
-                    "Source": source,
-                    "Title": page['title'],
-                    "Link": page['link']
+                    "Company": page['company_name'],
+                    "Domain": page['domain'],
+                    "Industry": page['industry'],
+                    "Size": page['company_size'].split(" (")[0],  # Shorter display
+                    "Career URL": page['career_url']
                 })
             
             df = pd.DataFrame(df_data)
-            st.dataframe(df, use_container_width=True)
+            
+            # Add filtering options for table
+            col1, col2 = st.columns(2)
+            with col1:
+                industry_filter = st.multiselect("Filter by Industry", df['Industry'].unique(), key="industry_filter")
+            with col2:
+                size_filter = st.multiselect("Filter by Size", df['Size'].unique(), key="size_filter")
+            
+            # Apply filters
+            filtered_df = df.copy()
+            if industry_filter:
+                filtered_df = filtered_df[filtered_df['Industry'].isin(industry_filter)]
+            if size_filter:
+                filtered_df = filtered_df[filtered_df['Size'].isin(size_filter)]
+            
+            st.dataframe(filtered_df, use_container_width=True)
         
-        # Download option
-        if st.button("📥 Download Career Pages as CSV"):
-            df_download = pd.DataFrame(career_pages)
-            csv = df_download.to_csv(index=False)
+        # Export options
+        st.markdown("### 📥 Export Options")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("📋 Copy Career URLs"):
+                urls = "\n".join([page['career_url'] for page in career_pages])
+                st.code(urls, language="text")
+        
+        with col2:
+            # Download as CSV
+            df_export = pd.DataFrame(career_pages)
+            csv = df_export.to_csv(index=False)
             st.download_button(
-                label="Download CSV",
+                label="💾 Download as CSV",
                 data=csv,
-                file_name="career_pages.csv",
+                file_name=f"career_pages_{len(career_pages)}_results.csv",
                 mime="text/csv"
             )
     
@@ -579,37 +707,124 @@ class JobHunterApp:
                     self.display_jobs(jobs)
         
         with tab2:
-            st.header("Company Career Pages")
+            st.header("Industry Career Pages Discovery")
+            st.markdown("*Automatically discover career pages from companies in specific industries*")
             
             col1, col2 = st.columns([2, 1])
             
             with col1:
-                selected_companies = st.multiselect(
-                    "Select Companies",
-                    self.top_companies,
-                    default=self.top_companies[:10],
-                    help="Select companies to find their career pages"
+                selected_industry = st.selectbox(
+                    "🏭 Select Industry Domain",
+                    self.industry_domains,
+                    help="Choose the industry to discover career pages from"
+                )
+                
+                selected_company_size = st.selectbox(
+                    "📊 Company Size Preference", 
+                    self.company_sizes,
+                    help="Choose between large corporations or startups"
                 )
             
             with col2:
-                st.markdown(f"**Total Companies:** {len(self.top_companies)}")
-                st.markdown(f"**Selected:** {len(selected_companies)}")
+                num_career_results = st.slider("🎯 Number of Companies", 10, 100, 30, step=5)
+                
+                use_ai_validation = st.checkbox(
+                    "🤖 AI Career Page Validation", 
+                    value=True,
+                    help="Use AI to validate and filter legitimate career pages"
+                )
             
-            if st.button("🔍 Find Career Pages", type="primary"):
-                if not selected_companies:
-                    st.error("Please select at least one company")
+            # Advanced options in expandable section
+            with st.expander("⚙️ Advanced Search Options"):
+                col3, col4 = st.columns(2)
+                with col3:
+                    location_filter = st.text_input(
+                        "🌍 Location Focus (Optional)",
+                        placeholder="USA, Europe, Global, etc.",
+                        help="Add location preference to the search"
+                    )
+                with col4:
+                    exclude_keywords = st.text_input(
+                        "🚫 Exclude Keywords (Optional)", 
+                        placeholder="recruiter, consultant, agency",
+                        help="Keywords to exclude from results"
+                    )
+            
+            if st.button("🔍 Discover Career Pages", type="primary"):
+                if not selected_industry:
+                    st.error("Please select an industry domain")
                     return
                 
-                with st.spinner(f"Searching career pages for {len(selected_companies)} companies..."):
-                    career_pages = self.get_company_career_pages(selected_companies)
-                    self.display_career_pages(career_pages)
+                search_criteria = {
+                    "industry": selected_industry,
+                    "company_size": selected_company_size,
+                    "num_results": num_career_results,
+                    "location": location_filter,
+                    "exclude_keywords": exclude_keywords
+                }
+                
+                with st.spinner(f"🔍 Discovering career pages for {selected_industry} companies..."):
+                    # Step 1: Discover career pages via SERP API
+                    raw_career_pages = self.discover_career_pages_by_industry(
+                        selected_industry, 
+                        selected_company_size, 
+                        num_career_results * 2  # Get more for better filtering
+                    )
+                    
+                    if raw_career_pages:
+                        # Step 2: Apply AI validation if enabled
+                        if use_ai_validation and self.azure_client:
+                            with st.spinner("🤖 AI is validating career pages and removing duplicates..."):
+                                validated_pages = self.filter_career_pages_with_llm(
+                                    raw_career_pages, 
+                                    search_criteria
+                                )
+                                final_pages = validated_pages
+                        else:
+                            final_pages = raw_career_pages[:num_career_results]
+                        
+                        # Step 3: Display results
+                        if final_pages:
+                            self.display_career_pages(final_pages)
+                            
+                            # Show search summary
+                            st.markdown("---")
+                            st.markdown("### 📊 Search Summary")
+                            col_sum1, col_sum2, col_sum3 = st.columns(3)
+                            with col_sum1:
+                                st.metric("🔍 Raw Results Found", len(raw_career_pages))
+                            with col_sum2:
+                                st.metric("✅ AI Validated Results", len(final_pages) if use_ai_validation else "N/A")
+                            with col_sum3:
+                                accuracy = f"{(len(final_pages)/len(raw_career_pages)*100):.1f}%" if raw_career_pages else "0%"
+                                st.metric("🎯 Filter Accuracy", accuracy)
+                        else:
+                            st.warning("No career pages found matching your criteria. Try adjusting your search parameters.")
+                    else:
+                        st.error("No career pages discovered. Please try a different industry or search criteria.")
+            
+            # Show example searches
+            with st.expander("💡 Example Search Combinations"):
+                st.markdown("""
+                **Popular Combinations:**
+                - 🚀 **Technology & Software** + **Startups** → Discover emerging tech companies
+                - 💰 **Financial Services** + **MNCs** → Find major banks and financial institutions
+                - 🏥 **Healthcare & Biotechnology** + **MNCs** → Explore pharmaceutical giants
+                - 🛒 **E-commerce & Retail** + **Startups** → Find growing online businesses
+                - 🎮 **Gaming & Digital Entertainment** + **Startups** → Discover indie game studios
+                
+                **Pro Tips:**
+                - Use **AI Validation** for higher quality results
+                - Set **Location Focus** for region-specific companies
+                - Add **Exclude Keywords** to filter out recruiters and agencies
+                """)
+
         
         # Footer
         st.markdown("---")
         st.markdown("""
         <div style='text-align: center; color: #666;'>
-            <p>Built with ❤️ using Streamlit • Powered by SERP API & Azure OpenAI</p>
-            <p><small>Make sure to add your API keys and Azure OpenAI configuration in the sidebar to get started!</small></p>
+            <p>Built by a drained Job Seeker - <a href="https://www.linkedin.com/in/sumant-pujari">Sumant Pujari</a></p>
         </div>
         """, unsafe_allow_html=True)
 
