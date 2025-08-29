@@ -921,8 +921,7 @@ class JobHunterApp:
         st.markdown("---")
         st.markdown("""
         <div style='text-align: center; color: #666;'>
-            <p>Built with ❤️ using Streamlit • Powered by SERP API & Azure OpenAI</p>
-            <p><small>Make sure to add your API keys and Azure OpenAI configuration in the sidebar to get started!</small></p>
+            <p>Built by a drained Job Seeker - <a href="https://www.linkedin.com/in/sumant-pujari">Sumant Pujari</a></p>
         </div>
         """, unsafe_allow_html=True)
 
