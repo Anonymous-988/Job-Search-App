@@ -6,9 +6,10 @@ import pandas as pd
 from typing import List, Dict, Any
 import time
 from urllib.parse import urlparse
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
 # Configure page
@@ -59,30 +60,7 @@ class JobHunterApp:
         self.setup_constants()
     
     def setup_api_keys(self):
-        """Setup API keys and Azure OpenAI configuration in sidebar"""
-        # with st.sidebar:
-        #     st.header("🔑 API Configuration")
-            
-        #     # SERP API
-        #     self.serp_api_key = st.text_input("SERP API Key", type="password", 
-        #                                     help="Get your API key from serpapi.com")
-            
-        #     st.subheader("🤖 Azure OpenAI Configuration")
-        #     self.azure_openai_api_key = st.text_input("Azure OpenAI API Key", type="password",
-        #                                              help="Your Azure OpenAI API key")
-        #     self.azure_openai_endpoint = st.text_input("Azure OpenAI Endpoint",
-        #                                               placeholder="https://your-resource.openai.azure.com/",
-        #                                               help="Your Azure OpenAI endpoint URL")
-        #     self.azure_openai_deployment = st.text_input("Deployment Name",
-        #                                                 placeholder="gpt-35-turbo or gpt-4",
-        #                                                 value="gpt-35-turbo",
-        #                                                 help="Your deployed model name in Azure OpenAI")
-        #     self.azure_openai_api_version = st.selectbox("API Version",
-        #                                                 ["2024-02-15-preview", "2023-12-01-preview", "2023-05-15"],
-        #                                                 index=0,
-        #                                                 help="Azure OpenAI API version")
-
-
+        """Setup API keys and Azure OpenAI configuration from .env or sidebar"""
         # SERP API
         self.serp_api_key = os.getenv("SERP_API_KEY")
         
@@ -91,6 +69,7 @@ class JobHunterApp:
         self.azure_openai_endpoint = os.getenv("AZURE_OPENAI_API_ENDPOINT")
         self.azure_openai_deployment = os.getenv("AZURE_API_DEPLOYMENT_NAME")
         self.azure_openai_api_version = os.getenv("AZURE_OPENAI_API_VERSION")
+            
         # Initialize Azure OpenAI client
         self.azure_client = None
         if all([self.azure_openai_api_key, self.azure_openai_endpoint, self.azure_openai_deployment]):
@@ -189,93 +168,212 @@ class JobHunterApp:
             st.error(f"Error searching jobs: {str(e)}")
             return []
     
-    def discover_career_pages_by_industry(self, industry: str, company_size: str, num_results: int = 50) -> List[Dict]:
-        """Discover career pages by industry and company size using SERP API"""
+    def make_single_serp_call(self, industry: str, company_size: str, location: str = "", num_results: int = 100) -> List[Dict]:
+        """Make a single optimized SERP API call to get all relevant results"""
         if not self.serp_api_key:
             st.error("Please provide SERP API key")
             return []
         
         try:
-            # Build search query based on industry and company size
+            # Build comprehensive search query
             size_keywords = {
-                "MNCs (Large Corporations)": "Fortune 500 OR multinational OR corporation OR enterprise OR global company",
-                "Startups (Small to Medium)": "startup OR tech startup OR emerging company OR scale-up OR growing company"
+                "MNCs (Large Corporations)": "Fortune 500 OR multinational OR corporation OR large company OR enterprise",
+                "Startups (Small to Medium)": "startup OR emerging company OR scale-up OR tech company OR innovation"
             }
             
             industry_keywords = {
-                "Technology & Software": "software company OR tech company OR IT company",
-                "Financial Services & Fintech": "bank OR financial services OR fintech OR investment",
-                "Healthcare & Biotechnology": "healthcare company OR biotech OR pharmaceutical OR medical",
-                "E-commerce & Retail": "ecommerce OR retail company OR online marketplace",
-                "Consulting & Professional Services": "consulting firm OR professional services OR advisory",
-                "Manufacturing & Automotive": "manufacturing company OR automotive OR industrial",
-                "Media & Entertainment": "media company OR entertainment OR broadcasting OR streaming",
-                "Energy & Utilities": "energy company OR utilities OR renewable energy OR oil gas",
-                "Real Estate & Construction": "real estate OR construction company OR property development",
-                "Education & EdTech": "education company OR edtech OR learning platform OR university",
-                "Food & Beverage": "food company OR beverage OR restaurant chain OR food tech",
-                "Transportation & Logistics": "logistics company OR transportation OR supply chain OR shipping",
-                "Telecommunications": "telecom company OR telecommunications OR wireless OR network",
-                "Gaming & Digital Entertainment": "gaming company OR game developer OR digital entertainment",
-                "Aerospace & Defense": "aerospace company OR defense contractor OR aviation"
+                "Technology & Software": "software OR technology OR IT OR tech OR SaaS OR cloud OR AI OR data science",
+                "Financial Services & Fintech": "bank OR financial OR fintech OR investment OR trading OR insurance OR payments",
+                "Healthcare & Biotechnology": "healthcare OR biotech OR pharmaceutical OR medical OR health tech OR life sciences",
+                "E-commerce & Retail": "ecommerce OR retail OR marketplace OR shopping OR consumer goods OR fashion",
+                "Consulting & Professional Services": "consulting OR advisory OR professional services OR strategy OR management",
+                "Manufacturing & Automotive": "manufacturing OR automotive OR industrial OR machinery OR production OR engineering",
+                "Media & Entertainment": "media OR entertainment OR content OR streaming OR publishing OR creative",
+                "Energy & Utilities": "energy OR utilities OR renewable OR oil OR gas OR power OR electricity",
+                "Real Estate & Construction": "real estate OR construction OR property OR architecture OR development",
+                "Education & EdTech": "education OR edtech OR learning OR training OR university OR academic",
+                "Food & Beverage": "food OR beverage OR restaurant OR hospitality OR culinary OR agriculture",
+                "Transportation & Logistics": "logistics OR transportation OR supply chain OR shipping OR delivery",
+                "Telecommunications": "telecom OR telecommunications OR wireless OR network OR connectivity",
+                "Gaming & Digital Entertainment": "gaming OR game development OR digital entertainment OR esports",
+                "Aerospace & Defense": "aerospace OR defense OR aviation OR space OR military OR aircraft"
             }
             
-            # Construct search query
-            base_query = f"({industry_keywords.get(industry, industry)}) AND ({size_keywords.get(company_size, '')}) careers site:careers OR site:jobs"
+            # Single comprehensive query
+            industry_terms = industry_keywords.get(industry, industry)
+            size_terms = size_keywords.get(company_size, "")
+            
+            # Build the query
+            query_parts = [f"({industry_terms})"]
+            if size_terms:
+                query_parts.append(f"({size_terms})")
+            if location:
+                query_parts.append(f"location:{location}")
+            
+            # Add career-related terms
+            query_parts.append("(careers OR jobs OR hiring OR employment)")
+            
+            final_query = " ".join(query_parts)
             
             params = {
                 "engine": "google",
-                "q": base_query,
+                "q": final_query,
                 "api_key": self.serp_api_key,
-                "num": min(num_results, 100),
+                "num": num_results,
                 "gl": "us",
                 "hl": "en"
             }
             
-            st.info(f"🔍 Searching: {base_query}")
+            st.info(f"🔍 **Single API Call Query:** `{final_query}`")
             
-            response = requests.get("https://serpapi.com/search", params=params, timeout=15)
+            with st.spinner("Making SERP API call..."):
+                response = requests.get("https://serpapi.com/search", params=params, timeout=20)
             
             if response.status_code == 200:
                 data = response.json()
                 organic_results = data.get("organic_results", [])
                 
-                st.info(f"📊 Found {len(organic_results)} raw results from SERP API")
+                st.success(f"✅ **Single API Call Complete!** Retrieved {len(organic_results)} raw results")
                 
-                # Process and clean results
-                career_pages = []
+                # Return all raw results for local filtering
+                raw_results = []
                 for result in organic_results:
-                    link = result.get("link", "")
-                    title = result.get("title", "")
-                    snippet = result.get("snippet", "")
-                    
-                    # Extract company name from title or domain
-                    company_name = self.extract_company_name(title, link)
-                    
-                    # Basic filtering for career-related pages
-                    career_keywords = ["career", "job", "hiring", "work", "employment", "talent", "opportunity", "join"]
-                    
-                    if any(keyword in link.lower() or keyword in title.lower() for keyword in career_keywords):
-                        career_page = {
-                            "company_name": company_name,
-                            "title": title,
-                            "career_url": link,
-                            "description": snippet,
-                            "domain": self.extract_domain(link),
-                            "industry": industry,
-                            "company_size": company_size
-                        }
-                        career_pages.append(career_page)
+                    raw_result = {
+                        "title": result.get("title", ""),
+                        "url": result.get("link", ""),
+                        "snippet": result.get("snippet", ""),
+                        "displayed_link": result.get("displayed_link", ""),
+                        "position": result.get("position", 0),
+                        "search_query": final_query
+                    }
+                    raw_results.append(raw_result)
                 
-                return career_pages
+                return raw_results
             
             else:
-                st.error(f"SERP API Error: {response.status_code} - {response.text[:200]}")
+                st.error(f"SERP API Error: {response.status_code}")
+                if response.status_code == 429:
+                    st.error("Rate limit exceeded. Please wait and try again.")
                 return []
                 
         except Exception as e:
-            st.error(f"Error discovering career pages: {str(e)}")
+            st.error(f"Error making SERP API call: {str(e)}")
             return []
+    
+    def filter_career_pages_locally(self, raw_results: List[Dict], criteria: Dict) -> List[Dict]:
+        """Filter career pages locally from raw SERP results"""
+        if not raw_results:
+            return []
+        
+        st.info(f"🔄 **Local Filtering:** Processing {len(raw_results)} raw results...")
+        
+        career_pages = []
+        excluded_domains = set()
+        excluded_keywords = criteria.get('exclude_keywords', '').lower().split(',') if criteria.get('exclude_keywords') else []
+        excluded_keywords = [kw.strip() for kw in excluded_keywords if kw.strip()]
+        
+        # Define career page indicators
+        career_url_keywords = [
+            "career", "careers", "job", "jobs", "hiring", "employment", 
+            "talent", "work", "opportunity", "join", "apply", "openings"
+        ]
+        
+        career_title_keywords = [
+            "career", "careers", "job", "jobs", "hiring", "employment",
+            "work at", "join", "talent", "opportunities"
+        ]
+        
+        # Define exclusion patterns (job boards, recruiters, etc.)
+        exclude_patterns = [
+            "indeed", "linkedin", "glassdoor", "monster", "ziprecruiter",
+            "simplyhired", "careerbuilder", "dice", "recruiter", "recruitment",
+            "staffing", "headhunter", "talent agency", "consulting"
+        ] + excluded_keywords
+        
+        for result in raw_results:
+            url = result['url'].lower()
+            title = result['title'].lower()
+            snippet = result['snippet'].lower()
+            domain = self.extract_domain(result['url'])
+            
+            # Check if it's likely a career page
+            is_career_url = any(keyword in url for keyword in career_url_keywords)
+            is_career_title = any(keyword in title for keyword in career_title_keywords)
+            has_career_content = any(keyword in snippet for keyword in career_url_keywords[:6])  # More selective for content
+            
+            # Check for exclusions
+            is_excluded = any(pattern in url or pattern in title or pattern in snippet for pattern in exclude_patterns)
+            
+            # Check for duplicate domains
+            is_duplicate = domain in excluded_domains
+            
+            # Apply filtering logic
+            if (is_career_url or is_career_title or has_career_content) and not is_excluded and not is_duplicate:
+                # Extract clean company name
+                company_name = self.extract_company_name(result['title'], result['url'])
+                
+                career_page = {
+                    "company_name": company_name,
+                    "title": result['title'],
+                    "career_url": result['url'],
+                    "description": result['snippet'],
+                    "domain": domain,
+                    "industry": criteria.get('industry', 'Unknown'),
+                    "company_size": criteria.get('company_size', 'Unknown'),
+                    "relevance_score": self.calculate_relevance_score(result, criteria)
+                }
+                
+                career_pages.append(career_page)
+                excluded_domains.add(domain)  # Prevent duplicates
+        
+        # Sort by relevance score
+        career_pages.sort(key=lambda x: x['relevance_score'], reverse=True)
+        
+        st.success(f"🎯 **Local Filtering Complete!** Found {len(career_pages)} valid career pages")
+        
+        return career_pages
+    
+    def calculate_relevance_score(self, result: Dict, criteria: Dict) -> float:
+        """Calculate relevance score for local sorting"""
+        score = 0.0
+        
+        url = result['url'].lower()
+        title = result['title'].lower()
+        snippet = result['snippet'].lower()
+        
+        # URL quality scoring
+        if 'careers.' in url or '/careers' in url:
+            score += 3.0
+        elif 'jobs.' in url or '/jobs' in url:
+            score += 2.5
+        elif any(keyword in url for keyword in ['hiring', 'employment', 'talent']):
+            score += 2.0
+        
+        # Title relevance scoring
+        industry = criteria.get('industry', '').lower()
+        if any(word in title for word in industry.split('&')):
+            score += 2.0
+        
+        # Company size indicators
+        company_size = criteria.get('company_size', '').lower()
+        if 'mnc' in company_size or 'large' in company_size:
+            if any(term in title or term in snippet for term in ['fortune', 'global', 'multinational', 'corporation']):
+                score += 1.5
+        elif 'startup' in company_size:
+            if any(term in title or term in snippet for term in ['startup', 'emerging', 'innovative', 'scale']):
+                score += 1.5
+        
+        # Domain authority indicators (simple heuristics)
+        if '.com' in url:
+            score += 0.5
+        if 'www.' in url:
+            score += 0.3
+        
+        # Position in search results (higher positions get slight boost)
+        position = result.get('position', 10)
+        score += max(0, (10 - position) * 0.1)
+        
+        return score
     
     def extract_company_name(self, title: str, url: str) -> str:
         """Extract company name from title or URL"""
@@ -525,7 +623,7 @@ class JobHunterApp:
                     <p><strong>🕒 Posted:</strong> {job.get('posted_at', 'Recently')}</p>
                     <p><strong>💼 Type:</strong> {job.get('schedule_type', 'Not specified')}</p>
                     <p><strong>🏠 Remote:</strong> {'Yes' if job.get('work_from_home') else 'Not specified'}</p>
-                    <p><strong>📝 Description:</strong> {job['description'][:500]}...</p>
+                    <p><strong>📝 Description:</strong> {job['description'][:200]}...</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -764,44 +862,43 @@ class JobHunterApp:
                 }
                 
                 with st.spinner(f"🔍 Discovering career pages for {selected_industry} companies..."):
-                    # Step 1: Discover career pages via SERP API
-                    raw_career_pages = self.discover_career_pages_by_industry(
-                        selected_industry, 
-                        selected_company_size, 
-                        num_career_results * 2  # Get more for better filtering
+                    # Step 1: Make a single SERP API call
+                    raw_results = self.make_single_serp_call(
+                        selected_industry,
+                        selected_company_size,
+                        location_filter,
+                        num_career_results * 2  # fetch extra for filtering
                     )
-                    
-                    if raw_career_pages:
-                        # Step 2: Apply AI validation if enabled
+
+                    if raw_results:
+                        # Step 2: Local filtering to isolate career pages
+                        filtered_pages = self.filter_career_pages_locally(raw_results, search_criteria)
+
+                        # Step 3: AI validation if enabled
                         if use_ai_validation and self.azure_client:
                             with st.spinner("🤖 AI is validating career pages and removing duplicates..."):
-                                validated_pages = self.filter_career_pages_with_llm(
-                                    raw_career_pages, 
-                                    search_criteria
-                                )
-                                final_pages = validated_pages
+                                final_pages = self.filter_career_pages_with_llm(filtered_pages, search_criteria)
                         else:
-                            final_pages = raw_career_pages[:num_career_results]
-                        
-                        # Step 3: Display results
+                            final_pages = filtered_pages[:num_career_results]
+
+                        # Step 4: Display results
                         if final_pages:
                             self.display_career_pages(final_pages)
-                            
-                            # Show search summary
                             st.markdown("---")
                             st.markdown("### 📊 Search Summary")
                             col_sum1, col_sum2, col_sum3 = st.columns(3)
                             with col_sum1:
-                                st.metric("🔍 Raw Results Found", len(raw_career_pages))
+                                st.metric("🔍 Raw Results Found", len(raw_results))
                             with col_sum2:
                                 st.metric("✅ AI Validated Results", len(final_pages) if use_ai_validation else "N/A")
                             with col_sum3:
-                                accuracy = f"{(len(final_pages)/len(raw_career_pages)*100):.1f}%" if raw_career_pages else "0%"
+                                accuracy = f"{(len(final_pages)/len(raw_results)*100):.1f}%" if raw_results else "0%"
                                 st.metric("🎯 Filter Accuracy", accuracy)
                         else:
                             st.warning("No career pages found matching your criteria. Try adjusting your search parameters.")
                     else:
                         st.error("No career pages discovered. Please try a different industry or search criteria.")
+
             
             # Show example searches
             with st.expander("💡 Example Search Combinations"):
@@ -824,7 +921,8 @@ class JobHunterApp:
         st.markdown("---")
         st.markdown("""
         <div style='text-align: center; color: #666;'>
-            <p>Built by a drained Job Seeker - <a href="https://www.linkedin.com/in/sumant-pujari">Sumant Pujari</a></p>
+            <p>Built with ❤️ using Streamlit • Powered by SERP API & Azure OpenAI</p>
+            <p><small>Make sure to add your API keys and Azure OpenAI configuration in the sidebar to get started!</small></p>
         </div>
         """, unsafe_allow_html=True)
 
